@@ -266,7 +266,11 @@ build_target() {
     # hard fail if SYSVIPC or PID_NS did not survive
     grep -q '^CONFIG_SYSVIPC=y' "${OUT_DIR}/.config" || { echo "FATAL: CONFIG_SYSVIPC did not survive merge"; grep -n 'SYSVIPC' "${OUT_DIR}/.config" | head -5; exit 1; }
     grep -q '^CONFIG_PID_NS=y' "${OUT_DIR}/.config" || { echo "FATAL: CONFIG_PID_NS did not survive merge"; grep -n 'PID_NS' "${OUT_DIR}/.config" | head -5; exit 1; }
-    grep -q '^CONFIG_ANDROID_PARANOID_NETWORK=n' "${OUT_DIR}/.config" || { echo "FATAL: CONFIG_ANDROID_PARANOID_NETWORK != n"; grep -n 'ANDROID_PARANOID_NETWORK' "${OUT_DIR}/.config" | head -5; exit 1; }
+    # ANDROID_PARANOID_NETWORK is NOT a valid symbol in this tree (removed by Xiaomi);
+    # kconfig discards it during olddefconfig. Informative only, do not hard-fail.
+    grep -q '^CONFIG_ANDROID_PARANOID_NETWORK=n' "${OUT_DIR}/.config" \
+        && echo "[i] CONFIG_ANDROID_PARANOID_NETWORK=n survived (kernel supports it)" \
+        || echo "[i] CONFIG_ANDROID_PARANOID_NETWORK dropped by olddefconfig (symbol missing in tree, expected)"
 
     # 6. Apply DroidSpaces cocci patches
     if command -v spatch &>/dev/null; then
