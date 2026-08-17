@@ -76,6 +76,9 @@ jobs:
         grep -q 'Guard against NULL' drivers/bus/mhi/core/mhi_init.c || { echo "FAIL: mhi fix missing"; exit 1; }
         grep -q 'CGRP_ROOT_NOPREFIX' kernel/cgroup/cgroup.c || { echo "FAIL: cgroup fix missing"; exit 1; }
         grep -q 'rawdata_show' drivers/input/keyboard/nanosic_driver_v2/nano_macro.h || { echo "FAIL: nano_macro.h missing"; exit 1; }
+        grep -q '^CONFIG_DEVPTS_MULTIPLE_INSTANCES=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_DEVPTS_MULTIPLE_INSTANCES missing"; exit 1; }
+        grep -q '^CONFIG_CGROUP_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_CGROUP_NS missing"; exit 1; }
+        grep -q '^CONFIG_CHECKPOINT_RESTORE=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_CHECKPOINT_RESTORE missing"; exit 1; }
         echo "[+] All patches verified OK"
 
     - name: Set up Environment
@@ -127,3 +130,19 @@ jobs:
         name: APTKernel-${{ github.event.inputs.device }}-${{ github.event.inputs.target_os }}-${{ github.run_id }}
         path: kernel/APTKernel_*.zip
         compression-level: 0 # 已经被 zip 压缩过，无需再二次压缩
+
+    - name: Create Release
+      uses: softprops/action-gh-release@v3
+      with:
+        tag_name: kernel-${{ github.event.inputs.device }}-${{ github.run_id }}
+        name: "Droidspaces Kernel ${{ github.event.inputs.device }} - Build ${{ github.run_id }}"
+        body: |
+          Droidspaces 内核自动构建
+          - **设备**: ${{ github.event.inputs.device }}
+          - **KernelSU**: ${{ github.event.inputs.ksu }}
+          - **目标系统**: ${{ github.event.inputs.target_os }}
+        files: kernel/APTKernel_*.zip
+        draft: false
+        prerelease: false
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
