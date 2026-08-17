@@ -253,14 +253,31 @@ build_target() {
     echo "[*] Updating config (make olddefconfig)..."
     make "${MAKE_OPTS[@]}" olddefconfig
 
-    # 5. DroidSpaces container support (must run after olddefconfig to avoid being reset)
-    echo "[*] Injecting DroidSpaces container support configurations..."
-    scripts/config --file "${OUT_DIR}/.config" \
-        -e DEVPTS_MULTIPLE_INSTANCES \
-        -e CGROUP_NS \
-        -e CHECKPOINT_RESTORE \
-        -e KCMP \
-        -e SCHED_AUTOGROUP
+    # 5. DroidSpaces container support — merge dedicated config fragment
+    #    (must run after olddefconfig to avoid being reset by BBG/KSU/MIUI injections)
+    echo "[*] Merging DroidSpaces container support config..."
+    cp "${KERNEL_DIR}/droidspaces.config" arch/arm64/configs/droidspaces.config
+    ./scripts/kconfig/merge_config.sh -O "${OUT_DIR}" -m "${OUT_DIR}/.config" arch/arm64/configs/droidspaces.config
+    make "${MAKE_OPTS[@]}" olddefconfig
+
+    # 6. Apply DroidSpaces cocci patches
+    if command -v spatch &>/dev/null; then
+        if [ -f "net/netfilter/xt_qtaguid.c" ]; then
+            spatch --sp-file "${KERNEL_DIR}/fix_kernel_panic_in_xt_qtaguid.cocci" --in-place net/netfilter/xt_qtaguid.c 2>/dev/null || true
+            echo "[*] Applied xt_qtaguid cocci fix"
+        fi
+        if [ -f "kernel/cgroup/cgroup.c" ] && ! grep -q "kernfs_create_link" "kernel/cgroup/cgroup.c"; then
+            spatch --sp-file "${KERNEL_DIR}/fix_restore_cgroup_file_prefix_handling.cocci" --in-place kernel/cgroup/cgroup.c 2>/dev/null || true
+            echo "[*] Applied cgroup cocci fix"
+        elif [ -f "kernel/cgroup.c" ] && ! grep -q "kernfs_create_link" "kernel/cgroup.c"; then
+            spatch --sp-file "${KERNEL_DIR}/fix_restore_cgroup_file_prefix_handling.cocci" --in-place kernel/cgroup.c 2>/dev/null || true
+            echo "[*] Applied cgroup cocci fix"
+        else
+            echo "[-] cgroup.c already patched or not found, skipping"
+        fi
+    else
+        echo "[-] spatch not found, skipping cocci patches"
+    fi
 
     # ----------------------------------------------------
     # Compilation
