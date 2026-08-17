@@ -253,6 +253,15 @@ build_target() {
     echo "[*] Updating config (make olddefconfig)..."
     make "${MAKE_OPTS[@]}" olddefconfig
 
+    # 5. DroidSpaces container support (must run after olddefconfig to avoid being reset)
+    echo "[*] Injecting DroidSpaces container support configurations..."
+    scripts/config --file "${OUT_DIR}/.config" \
+        -e DEVPTS_MULTIPLE_INSTANCES \
+        -e CGROUP_NS \
+        -e CHECKPOINT_RESTORE \
+        -e KCMP \
+        -e SCHED_AUTOGROUP
+
     # ----------------------------------------------------
     # Compilation
     # ----------------------------------------------------
