@@ -258,7 +258,15 @@ build_target() {
     echo "[*] Merging DroidSpaces container support config..."
     cp "${KERNEL_DIR}/droidspaces.config" arch/arm64/configs/droidspaces.config
     ./scripts/kconfig/merge_config.sh -O "${OUT_DIR}" -m "${OUT_DIR}/.config" arch/arm64/configs/droidspaces.config
+    echo "[*] DroidSpaces config lines in .config after merge:"
+    grep -E '^(# )?CONFIG_(SYSCTL|SYSVIPC|POSIX_MQUEUE|PID_NS|DEVTMPFS|CGROUP_PIDS|CGROUP_DEVICE|ANDROID_PARANOID_NETWORK|BRIDGE_NETFILTER|NF_TABLES|CHECKPOINT_RESTORE|SCHED_AUTOGROUP)[ =]' "${OUT_DIR}/.config" || true
     make "${MAKE_OPTS[@]}" olddefconfig
+    echo "[*] DroidSpaces config lines in .config after olddefconfig:"
+    grep -E '^(# )?CONFIG_(SYSCTL|SYSVIPC|POSIX_MQUEUE|PID_NS|DEVTMPFS|CGROUP_PIDS|CGROUP_DEVICE|ANDROID_PARANOID_NETWORK|BRIDGE_NETFILTER|NF_TABLES|CHECKPOINT_RESTORE|SCHED_AUTOGROUP)[ =]' "${OUT_DIR}/.config" || true
+    # hard fail if SYSVIPC or PID_NS did not survive
+    grep -q '^CONFIG_SYSVIPC=y' "${OUT_DIR}/.config" || { echo "FATAL: CONFIG_SYSVIPC did not survive merge"; grep -n 'SYSVIPC' "${OUT_DIR}/.config" | head -5; exit 1; }
+    grep -q '^CONFIG_PID_NS=y' "${OUT_DIR}/.config" || { echo "FATAL: CONFIG_PID_NS did not survive merge"; grep -n 'PID_NS' "${OUT_DIR}/.config" | head -5; exit 1; }
+    grep -q '^CONFIG_ANDROID_PARANOID_NETWORK=n' "${OUT_DIR}/.config" || { echo "FATAL: CONFIG_ANDROID_PARANOID_NETWORK != n"; grep -n 'ANDROID_PARANOID_NETWORK' "${OUT_DIR}/.config" | head -5; exit 1; }
 
     # 6. Apply DroidSpaces cocci patches
     if command -v spatch &>/dev/null; then
