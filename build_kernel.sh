@@ -201,13 +201,12 @@ build_target() {
     echo "[*] Injecting Baseband-guard configuration..."
     scripts/config --file "${OUT_DIR}/.config" -e BBG
 
-    # 2. KernelSU configurations
+    # 2. KernelSU configurations (syscall hook, not inline)
     if [ "$ENABLE_KSU" -eq 1 ]; then
-        echo "[*] Injecting KernelSU & SUSFS configurations..."
+        echo "[*] Injecting KernelSU configurations (syscall hook)..."
         scripts/config --file "${OUT_DIR}/.config" \
             -e KSU \
-            -e THREAD_INFO_IN_TASK \
-            -e KSU_SUSFS
+            -e THREAD_INFO_IN_TASK
     fi
 
     # 3. MIUI configurations
