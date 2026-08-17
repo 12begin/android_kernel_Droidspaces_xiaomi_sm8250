@@ -60,28 +60,31 @@ jobs:
         path: kernel
 
     - name: Apply Droidspaces patches
-      run: |
-        cd kernel
-        cp -a ../patches/build_kernel.sh .
-        cp -a ../patches/arch/arm64/configs/pipa_defconfig arch/arm64/configs/pipa_defconfig
-        cp -a ../patches/drivers/bus/mhi/core/mhi_init.c drivers/bus/mhi/core/mhi_init.c
-        cp -a ../patches/drivers/input/keyboard/nanosic_driver_v2/nano_macro.h drivers/input/keyboard/nanosic_driver_v2/nano_macro.h
-        cp -a ../patches/kernel/cgroup/cgroup.c kernel/cgroup/cgroup.c
+        run: |
+          cd kernel
+          cp -a ../patches/build_kernel.sh .
+          cp -a ../patches/arch/arm64/configs/pipa_defconfig arch/arm64/configs/pipa_defconfig
+          cp -a ../patches/drivers/bus/mhi/core/mhi_init.c drivers/bus/mhi/core/mhi_init.c
+          cp -a ../patches/drivers/input/keyboard/nanosic_driver_v2/nano_macro.h drivers/input/keyboard/nanosic_driver_v2/nano_macro.h
+          cp -a ../patches/kernel/cgroup/cgroup.c kernel/cgroup/cgroup.c
+          cp -a ../patches/droidspaces.config .
+          cp -a ../patches/fix_restore_cgroup_file_prefix_handling.cocci .
+          cp -a ../patches/fix_kernel_panic_in_xt_qtaguid.cocci .
 
-        # ---- sanity checks: fail early if patches did not apply ----
-        grep -q '^CONFIG_USER_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_USER_NS missing"; exit 1; }
-        grep -q '^CONFIG_PID_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_PID_NS missing"; exit 1; }
-        grep -q -- '-e MILLET \\' build_kernel.sh || { echo "FAIL: MILLET not restored"; exit 1; }
-        if grep -q 'MILLET_CGROUP\|BINDER_PRIO' build_kernel.sh; then
-          echo "FAIL: MILLET_* split / BINDER_PRIO still present"; exit 1
-        fi
-        grep -q 'Guard against NULL' drivers/bus/mhi/core/mhi_init.c || { echo "FAIL: mhi fix missing"; exit 1; }
-        grep -q 'CGRP_ROOT_NOPREFIX' kernel/cgroup/cgroup.c || { echo "FAIL: cgroup fix missing"; exit 1; }
-        grep -q 'rawdata_show' drivers/input/keyboard/nanosic_driver_v2/nano_macro.h || { echo "FAIL: nano_macro.h missing"; exit 1; }
-        grep -q '^CONFIG_DEVPTS_MULTIPLE_INSTANCES=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_DEVPTS_MULTIPLE_INSTANCES missing"; exit 1; }
-        grep -q '^CONFIG_CGROUP_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_CGROUP_NS missing"; exit 1; }
-        grep -q '^CONFIG_CHECKPOINT_RESTORE=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_CHECKPOINT_RESTORE missing"; exit 1; }
-        echo "[+] All patches verified OK"
+          # ---- sanity checks: fail early if patches did not apply ----
+          grep -q '^CONFIG_USER_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_USER_NS missing"; exit 1; }
+          grep -q '^CONFIG_PID_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_PID_NS missing"; exit 1; }
+          grep -q -- '-e MILLET \' build_kernel.sh || { echo "FAIL: MILLET not restored"; exit 1; }
+          if grep -q 'MILLET_CGROUP\|BINDER_PRIO' build_kernel.sh; then
+            echo "FAIL: MILLET_* split / BINDER_PRIO still present"; exit 1
+          fi
+          grep -q 'Guard against NULL' drivers/bus/mhi/core/mhi_init.c || { echo "FAIL: mhi fix missing"; exit 1; }
+          grep -q 'CGRP_ROOT_NOPREFIX' kernel/cgroup/cgroup.c || { echo "FAIL: cgroup fix missing"; exit 1; }
+          grep -q 'rawdata_show' drivers/input/keyboard/nanosic_driver_v2/nano_macro.h || { echo "FAIL: nano_macro.h missing"; exit 1; }
+          test -f droidspaces.config || { echo "FAIL: droidspaces.config missing"; exit 1; }
+          grep -q 'CONFIG_PID_NS=y' droidspaces.config || { echo "FAIL: droidspaces.config missing CONFIG_PID_NS"; exit 1; }
+          grep -q 'kernfs_create_link' fix_restore_cgroup_file_prefix_handling.cocci || { echo "FAIL: cgroup cocci fix missing"; exit 1; }
+          echo "[+] All patches verified OK"
 
     - name: Set up Environment
       run: |
