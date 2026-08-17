@@ -74,7 +74,7 @@ jobs:
         # ---- sanity checks: fail early if patches did not apply ----
         grep -q '^CONFIG_USER_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_USER_NS missing"; exit 1; }
         grep -q '^CONFIG_PID_NS=y' arch/arm64/configs/pipa_defconfig || { echo "FAIL: CONFIG_PID_NS missing"; exit 1; }
-        grep -q -- '-e MILLET \' build_kernel.sh || { echo "FAIL: MILLET not restored"; exit 1; }
+        grep -q -- '-e MILLET' build_kernel.sh || { echo "FAIL: MILLET not restored"; exit 1; }
         if grep -q 'MILLET_CGROUP\|BINDER_PRIO' build_kernel.sh; then
           echo "FAIL: MILLET_* split / BINDER_PRIO still present"; exit 1
         fi
